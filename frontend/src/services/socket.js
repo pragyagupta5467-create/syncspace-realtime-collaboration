@@ -1,13 +1,24 @@
 import { io } from 'socket.io-client';
 import { getAuthToken } from './api';
 
+function resolveSocketServerUrl() {
+  if (import.meta.env.VITE_SOCKET_URL) {
+    return import.meta.env.VITE_SOCKET_URL.trim().replace(/\/+$/, '');
+  }
+  if (import.meta.env.VITE_API_URL) {
+    const clean = import.meta.env.VITE_API_URL.trim().replace(/\/+$/, '');
+    return clean.replace(/\/api$/, '');
+  }
+  return 'http://localhost:5000';
+}
+
 /**
  * Socket.IO Singleton Client Service
  */
 class SocketService {
   constructor() {
     this.socket = null;
-    this.serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+    this.serverUrl = resolveSocketServerUrl();
     this.listeners = new Map();
   }
 

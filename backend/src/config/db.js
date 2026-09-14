@@ -1,8 +1,5 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-dotenv.config();
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/syncspace';
+import { config } from './index.js';
 
 let isConnected = false;
 
@@ -11,8 +8,19 @@ export async function connectDB() {
     return mongoose.connection;
   }
 
+  const uri = config.mongodbUri;
+  const isDefaultLocal = !process.env.MONGODB_URI;
+
+  if (isDefaultLocal && config.nodeEnv === 'production') {
+    console.warn(
+      '⚠️ [MongoDB Notice] MONGODB_URI environment variable is not defined in production.\n' +
+      '   Falling back to localhost (127.0.0.1:27017). If you are deploying on Render,\n' +
+      '   please add your MongoDB Atlas connection string to Render Environment Variables as MONGODB_URI.'
+    );
+  }
+
   try {
-    const conn = await mongoose.connect(MONGODB_URI, {
+    const conn = await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 5000,
     });
 
@@ -20,7 +28,7 @@ export async function connectDB() {
     console.log(`🍃 MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
     return conn;
   } catch (error) {
-    console.warn(`⚠️ MongoDB Connection Warning: ${error.message}. Checking fallback or retry...`);
+    console.warn(`⚠️ MongoDB Connection Error: ${error.message}. Backend running in memory-standby mode.`);
     isConnected = false;
     return null;
   }

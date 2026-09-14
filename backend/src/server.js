@@ -18,26 +18,56 @@ const httpServer = http.createServer(app);
 // Connect to MongoDB
 connectDB();
 
-// Allowed Origins Configuration
-const allowedOrigins = [
-  config.clientUrl,
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-];
+// Helper to check if an origin is allowed
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // Allow requests with no origin (mobile, curl, server-to-server)
+  
+  const cleanOrigin = origin.trim().replace(/\/+$/, '').toLowerCase();
+  const configuredClient = (config.clientUrl || '').trim().replace(/\/+$/, '').toLowerCase();
+
+  // 1. Configured client URL from environment
+  if (configuredClient && cleanOrigin === configuredClient) {
+    return true;
+  }
+
+  // 2. Production Vercel domain and preview deployments
+  if (
+    cleanOrigin === 'https://syncspace-realtime-collaboration-beta.vercel.app' ||
+    cleanOrigin.endsWith('.vercel.app')
+  ) {
+    return true;
+  }
+
+  // 3. Localhost development origins
+  if (
+    cleanOrigin === 'http://localhost:5173' ||
+    cleanOrigin === 'http://127.0.0.1:5173' ||
+    cleanOrigin === 'http://localhost:3000' ||
+    cleanOrigin === 'http://127.0.0.1:3000' ||
+    cleanOrigin === 'http://localhost:4173' ||
+    cleanOrigin === 'http://127.0.0.1:4173'
+  ) {
+    return true;
+  }
+
+  // 4. In development, allow all
+  if (config.nodeEnv === 'development') {
+    return true;
+  }
+
+  return false;
+}
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, server-to-server)
-    if (!origin || allowedOrigins.includes(origin) || config.nodeEnv === 'development') {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Blocked by CORS security policy'));
+      callback(new Error(`Blocked by CORS security policy: ${origin}`));
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
@@ -45,10 +75,10 @@ const corsOptions = {
 const io = new Server(httpServer, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || config.nodeEnv === 'development') {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Blocked by CORS'));
+        callback(new Error(`Blocked by Socket.IO CORS: ${origin}`));
       }
     },
     methods: ['GET', 'POST'],

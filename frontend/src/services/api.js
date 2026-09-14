@@ -3,7 +3,19 @@
  * REST communication for Authentication, Room management, and MongoDB health checks.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+function resolveApiBaseUrl() {
+  const raw = import.meta.env.VITE_API_URL;
+  if (!raw || typeof raw !== 'string') {
+    return '/api';
+  }
+  const clean = raw.trim().replace(/\/+$/, '');
+  if (!clean.endsWith('/api')) {
+    return `${clean}/api`;
+  }
+  return clean;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 const AUTH_TOKEN_KEY = 'syncspace_auth_token';
 
 export function getAuthToken() {

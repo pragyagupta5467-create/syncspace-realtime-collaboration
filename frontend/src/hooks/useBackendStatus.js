@@ -15,7 +15,8 @@ export function useBackendStatus() {
       if (!isMounted) return;
 
       if (data.status === 'ok') {
-        setStatus({ state: 'connected', message: 'Backend Operational (Port 5000)' });
+        const dbMsg = data.database === 'connected' ? 'Database Connected' : 'Standby Mode';
+        setStatus({ state: 'connected', message: `Backend Operational (${dbMsg})` });
       } else {
         setStatus({ state: 'standby', message: 'Backend on Standby' });
       }
